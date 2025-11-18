@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mobile Cover Store — Single File</title>
+  <meta name="description" content="Aesthetic single-file e‑commerce page for mobile covers with product listing, slider animation and simple local 'backend' using localStorage." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1: #0f172a; /* deep navy */
+      --bg2: #071133; /* near black-blue */
+      --card: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.7);
+      --accent1: #ff7ab6; /* pink */
+      --accent2: #6be5ff; /* cyan */
+      --glass: rgba(255,255,255,0.04);
+      --glass-strong: rgba(255,255,255,0.08);
+      --radius: 14px;
+      --shadow: 0 8px 24px rgba(2,6,23,0.6);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: radial-gradient(1000px 600px at 10% 10%, rgba(107,229,255,0.06), transparent),
+                  linear-gradient(180deg,var(--bg1),var(--bg2));
+      color:#fff;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px;
+    }
+
+    /* Container */
+    .wrap{max-width:1100px;margin:0 auto}
+
+    header{
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      display:grid;place-items:center;font-weight:700;font-family:Poppins;font-size:18px;color:#071133;box-shadow:0 8px 30px rgba(107,229,255,0.08);
+    }
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    /* Controls */
+    .controls{display:flex;gap:12px;align-items:center}
+    .btn{background:var(--glass);border:1px solid rgba(255,255,255,0.06);padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn.primary{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#071133;border:none;box-shadow:var(--shadow)}
+
+    /* Grid */
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:18px}
+
+    /* Sidebar */
+    aside.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px;border-radius:var(--radius);backdrop-filter: blur(6px);}
+    .form-row{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+    label{font-size:13px;color:var(--muted)}
+    input[type=text], input[type=number], textarea, select{
+      padding:10px;border-radius:10px;border:none;background:rgba(255,255,255,0.03);color:#fff;outline:none
+    }
+    textarea{min-height:80px}
+
+    /* Main area */
+    main{min-height:60vh}
+
+    /* Slider */
+    .hero{position:relative;border-radius:20px;padding:18px;background:linear-gradient(135deg, rgba(255,122,182,0.06), rgba(107,229,255,0.03));overflow:hidden}
+    .slider{display:flex;gap:12px;align-items:center}
+    .slide-track{display:flex;gap:14px;transition:transform 700ms cubic-bezier(.22,.9,.2,1)}
+    .product-card{width:180px;border-radius:14px;background:var(--card);padding:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);position:relative;overflow:hidden}
+    .product-card img{width:100%;height:170px;object-fit:cover;border-radius:10px}
+    .price{font-weight:700;margin-top:8px}
+    .tag{position:absolute;left:12px;top:12px;padding:6px 8px;border-radius:8px;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#071133;font-weight:700;font-size:12px}
+
+    /* Product grid */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:18px}
+
+    .card{background:linear-gradient(180deg,var(--glass),transparent);padding:14px;border-radius:14px;}
+
+    /* small utilities */
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:flex;gap:8px;align-items:center}
+
+    /* animations */
+    .float{animation:float 6s ease-in-out infinite}
+    @keyframes float{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+
+    /* responsive */
+    @media (max-width:980px){.layout{grid-template-columns:1fr}.brand h1{font-size:16px}.slider{overflow:auto}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">MC</div>
+        <div>
+          <h1>Mobile Cover Shop</h1>
+          <p class="lead">List karo products, manage karo, aur dekho slider animation — sab ek file mein.</p>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="resetBtn" title="Reset sample data">Reset</button>
+        <button class="btn primary" id="addBtn">Naya Product Add Karo</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <!-- Sidebar: Add product form (toggle visible) -->
+      <aside class="card" id="sidebar">
+        <h3 style="margin-top:0">Product Manage</h3>
+        <div class="muted">Yahan se product add / edit karein. Data browser localStorage me store hoga (simple backend simulation).</div>
+
+        <div style="height:12px"></div>
+        <form id="productForm">
+          <div class="form-row">
+            <label>Product Name</label>
+            <input type="text" id="pname" placeholder="Example: Pink Marble Case" required>
+          </div>
+          <div class="form-row">
+            <label>Price (₹)</label>
+            <input type="number" id="pprice" placeholder="499" required>
+          </div>
+          <div class="form-row">
+            <label>Image URL</label>
+            <input type="text" id="pimg" placeholder="https://...jpg" required>
+          </div>
+          <div class="form-row">
+            <label>Short description</label>
+            <textarea id="pdesc" placeholder="Soft TPU, stylish print..."></textarea>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn primary" type="submit">Save Product</button>
+            <button type="button" class="btn" id="cancelEdit">Cancel</button>
+          </div>
+        </form>
+      </aside>
+
+      <!-- Main: slider + grid -->
+      <main>
+        <section class="hero">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <h2 style="margin:0">Featured Covers</h2>
+              <div class="muted">Swipe/Auto slide to see top designs</div>
+            </div>
+            <div class="muted">Auto-play • Drag to control</div>
+          </div>
+
+          <div class="slider" id="sliderRoot">
+            <div class="slide-track" id="slideTrack">
+              <!-- slides injected by JS -->
+            </div>
+          </div>
+        </section>
+
+        <div style="height:18px"></div>
+
+        <section>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="margin:0">All Products</h3>
+            <div class="muted" id="count"></div>
+          </div>
+
+          <div class="grid" id="productGrid" style="margin-top:12px">
+            <!-- product cards injected by JS -->
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    // Simple 'backend' helpers using localStorage
+    const LS_KEY = 'mc_products_v1';
+
+    function getProducts(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return [];
+        return JSON.parse(raw);
+      }catch(e){console.error(e);return []}
+    }
+    function saveProducts(arr){
+      localStorage.setItem(LS_KEY, JSON.stringify(arr));
+    }
+
+    // Seed sample data if empty
+    function seedIfEmpty(){
+      const now = getProducts();
+      if(now.length) return;
+      const samples = [
+        {id:genId(),name:'Pink Marble Case',price:499,img:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80',desc:'Soft TPU with glossy marble print'},
+        {id:genId(),name:'Neon Splash',price:599,img:'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800&q=80',desc:'Vivid colors, anti-slip'},
+        {id:genId(),name:'Minimal Black',price:399,img:'https://images.unsplash.com/photo-1503602642458-232111445657?w=800&q=80',desc:'Matte finish, ultra-slim'},
+        {id:genId(),name:'Botanical Green',price:549,img:'https://images.unsplash.com/photo-1520975912190-6a2b2d8efb44?w=800&q=80',desc:'Eco-friendly print'}
+      ];
+      saveProducts(samples);
+    }
+
+    function genId(){return 'p_' + Math.random().toString(36).slice(2,9)}
+
+    // DOM refs
+    const slideTrack = document.getElementById('slideTrack');
+    const productGrid = document.getElementById('productGrid');
+    const countEl = document.getElementById('count');
+    const sidebar = document.getElementById('sidebar');
+    const addBtn = document.getElementById('addBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // form
+    const form = document.getElementById('productForm');
+    const pname = document.getElementById('pname');
+    const pprice = document.getElementById('pprice');
+    const pimg = document.getElementById('pimg');
+    const pdesc = document.getElementById('pdesc');
+    const cancelEdit = document.getElementById('cancelEdit');
+
+    let editingId = null;
+
+    function render(){
+      const products = getProducts();
+      // slider content: show first 6 or repeated if few
+      slideTrack.innerHTML = '';
+      const sampleForSlider = products.length ? products : [];
+      const slides = [];
+      for(let i=0;i<Math.min(6, sampleForSlider.length);i++) slides.push(sampleForSlider[i]);
+      // duplicate slides to create infinite feel
+      const allSlides = slides.concat(slides.map(s=>({...s})));
+      allSlides.forEach(p => {
+        const card = document.createElement('div');card.className='product-card float';
+        card.innerHTML = `
+          <div class=\"tag\">₹${p.price}</div>
+          <img loading=\"lazy\" src=\"${p.img}\" alt=\"${escapeHtml(p.name)}\" />
+          <div style=\"padding:6px 0\"> <strong>${escapeHtml(p.name)}</strong> </div>
+          <div class=\"muted\">${escapeHtml(p.desc||'')}</div>
+        `;
+        slideTrack.appendChild(card);
+      });
+
+      // product grid
+      productGrid.innerHTML = '';
+      products.forEach(p => {
+        const el = document.createElement('div');el.className='card';
+        el.innerHTML = `
+          <div style=\"display:flex;gap:12px;align-items:center\"> 
+            <img src=\"${p.img}\" alt=\"${escapeHtml(p.name)}\" style=\"width:86px;height:86px;object-fit:cover;border-radius:10px\">
+            <div style=\"flex:1\"> 
+              <div style=\"display:flex;justify-content:space-between;align-items:center\"> 
+                <div><strong>${escapeHtml(p.name)}</strong><div class=\"muted\" style=\"font-size:13px\">${escapeHtml(p.desc||'')}</div></div>
+                <div style=\"text-align:right\"> <div class=\"price\">₹${p.price}</div> <div class=\"muted\">ID: ${p.id}</div> </div>
+              </div>
+            </div>
+          </div>
+          <div style=\"margin-top:10px;display:flex;gap:8px;justify-content:flex-end\"> 
+            <button class=\"btn\" onclick=\"editProduct('${p.id}')\">Edit</button>
+            <button class=\"btn\" onclick=\"deleteProduct('${p.id}')\">Delete</button>
+          </div>
+        `;
+        productGrid.appendChild(el);
+      });
+
+      countEl.textContent = products.length + ' products';
+
+      // after rendering slides, ensure track width enough and reset translate
+      // small safety: if no slides, show placeholder
+      if(allSlides.length===0){
+        slideTrack.innerHTML = `<div class="muted" style="padding:28px">No products yet. Add from left panel.</div>`
+      }
+
+    }
+
+    // utilities
+    function escapeHtml(s){if(!s) return '';return s.replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]});}
+
+    // add / edit handling
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      const name = pname.value.trim();
+      const price = Number(pprice.value);
+      const img = pimg.value.trim();
+      const desc = pdesc.value.trim();
+      if(!name || !price || !img){ alert('Name, price aur image URL chahiye'); return }
+      const arr = getProducts();
+      if(editingId){
+        const idx = arr.findIndex(x=>x.id===editingId);
+        if(idx>-1){arr[idx] = {...arr[idx],name,price,img,desc}};
+        editingId = null;
+      } else {
+        arr.unshift({id:genId(),name,price,img,desc});
+      }
+      saveProducts(arr);render();form.reset();sidebar.scrollTop=0;
+    });
+
+    cancelEdit.addEventListener('click', ()=>{editingId=null;form.reset()});
+
+    window.editProduct = function(id){
+      const arr = getProducts();
+      const p = arr.find(x=>x.id===id); if(!p) return alert('Mil nahi raha');
+      editingId = id;
+      pname.value = p.name; pprice.value = p.price; pimg.value = p.img; pdesc.value = p.desc || '';
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    window.deleteProduct = function(id){
+      if(!confirm('Delete karna hai?')) return;
+      const arr = getProducts().filter(x=>x.id!==id);
+      saveProducts(arr);render();
+    }
+
+    // UI buttons
+    addBtn.addEventListener('click', ()=>{
+      sidebar.scrollIntoView({behavior:'smooth'});
+      pname.focus();
+    });
+    resetBtn.addEventListener('click', ()=>{
+      if(!confirm('Sample data se replace karna hai? This will erase your current list.')) return;
+      localStorage.removeItem(LS_KEY);
+      seedIfEmpty();render();
+    });
+
+    // Auto slider logic: simple continuous scroll by changing transform
+    let sliderPos = 0; let slideWidth = 200; let autoId=null;
+    function startAutoSlider(){
+      cancelAuto();
+      const track = slideTrack;
+      if(!track) return;
+      let px=0;
+      autoId = setInterval(()=>{
+        // move left
+        px += 2; // speed
+        track.style.transform = `translateX(${-px}px)`;
+        // when px > half width, reset to 0 to loop
+        const max = track.scrollWidth/2;
+        if(px >= max) px = 0;
+      },16);
+
+      // allow drag control
+      let isDown=false,startX=0,scrollStart=0;
+      track.parentElement.addEventListener('pointerdown', (e)=>{isDown=true;startX=e.clientX;track.style.transition='none';});
+      window.addEventListener('pointerup', ()=>{isDown=false;track.style.transition='transform 700ms cubic-bezier(.22,.9,.2,1)';});
+      window.addEventListener('pointermove', (e)=>{if(!isDown) return; const dx = e.clientX - startX; px = Math.max(0, px - dx); track.style.transform = `translateX(${-px}px)`; startX = e.clientX;});
+    }
+    function cancelAuto(){ if(autoId) clearInterval(autoId); autoId=null }
+
+    // initialize
+    seedIfEmpty();render();startAutoSlider();
+
+    // small helper: if user opens on small screen, make slider draggable with touch
+    // note: saved data persists until user clears localStorage for this key
+
+    // make sure images from unsplash load with proper CORS-safe parameters
+    // you can replace image URLs with your own product photos.
+
+  </script>
+</body>
+</html>
